@@ -1,1 +1,124 @@
-<
+<canvas id="game" width="400" height="400"></canvas>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x: 200, y: 350, size: 20 }; // サイズを追加
+let bullets = [];
+let enemies = [{ x: 200, y: 50 }];
+let enemyBullets = [];
+let startTime = Date.now(); // ゲーム開始時刻
+
+document.addEventListener("keydown", (e) => {
+  if (["ArrowLeft", "ArrowRight", "z"].includes(e.key)) e.preventDefault();
+
+  if (e.key === "ArrowLeft") player.x = Math.max(10, player.x - 10);
+  if (e.key === "ArrowRight") player.x = Math.min(390, player.x + 10);
+  if (e.key === "z") {
+    bullets.push({ x: player.x, y: player.y });
+  }
+});
+
+// 敵弾を発射するインターバル
+setInterval(() => {
+  enemies.forEach((e) => {
+    let baseAngle = Math.random() * 360; // ランダムな基準角度
+    for (let i = 0; i < 12; i++) {
+      let angle = baseAngle + i * 30;
+      let rad = angle * Math.PI / 180;
+      let speed = 1.5 + Math.random() * 1.5; // ランダムなスピード
+      let size = 15 + Math.random() * 10; // ランダムなサイズ(15〜25)
+
+      // 「課題」文字弾を追加
+      enemyBullets.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(rad) * speed,
+        vy: Math.sin(rad) * speed,
+        size: size // 文字のサイズ
+      });
+    }
+  });
+}, 500);
+
+// ゲームループ
+function loop() {
+  // 30秒経過していたらクリアメッセージをアラートで表示
+  if (Date.now() - startTime > 30000) {
+    alert("クリア!");
+    return; // ゲームループを終了
+  }
+
+  // 背景を青色に
+  ctx.fillStyle = "skyblue"; // 背景色を設定
+  ctx.fillRect(0, 0, canvas.width, canvas.height); // キャンバス全体を塗りつぶす
+  
+  // 残り時間表示
+  const elapsedTime = (Date.now() - startTime) / 1000; // 経過時間(秒)
+  const remainingTime = 30 - Math.floor(elapsedTime); // 残り時間
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText(`残り時間: ${remainingTime}s`, 10, 30);
+
+  // プレイヤー(「俺」という文字)描画
+  ctx.fillStyle = "blue";
+  ctx.font = `${player.size}px Arial`; // 文字のサイズ
+  ctx.fillText("俺", player.x - player.size / 2, player.y + player.size / 2); // 文字を描画
+
+  // プレイヤー弾
+  ctx.fillStyle = "red";
+  bullets.forEach((b, i) => {
+    b.y -= 5;
+    ctx.fillRect(b.x - 2, b.y - 10, 4, 10);
+    if (b.y < 0) bullets.splice(i, 1);
+  });
+
+  // 敵弾(「課題」文字弾)
+  ctx.fillStyle = "purple";
+  enemyBullets.forEach((b, i) => {
+    // 弾の移動
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // 「課題」の文字を描画
+    ctx.font = `${b.size}px Arial`; // サイズを弾の大きさに合わせる
+    ctx.fillText("課題", b.x - b.size / 2, b.y); // 弾の中心に「課題」テキストを描画
+
+    // 画面外なら弾を削除
+    if (b.x < 0 || b.x > 400 || b.y < 0 || b.y > 400) {
+      enemyBullets.splice(i, 1);
+    }
+
+    // 当たり判定:プレイヤーとの衝突
+    let dx = b.x - player.x;
+    let dy = b.y - player.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < 15) {
+      /alert("ゲームオーバー!");/
+      // ゲームリセット
+      resetGame(); // ゲームをリセット
+    }
+  });
+
+  // 敵描画
+  ctx.fillStyle = "green";
+  enemies.forEach((e) => {
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, 15, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  requestAnimationFrame(loop);
+}
+
+// ゲームリセット関数
+function resetGame() {
+  bullets = [];
+  enemyBullets = [];
+  player.x = 200;
+  player.y = 350;
+  startTime = Date.now(); // ゲーム開始時刻をリセット
+}
+
+loop();
+</script>
